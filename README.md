@@ -38,11 +38,11 @@ Usage
 In terminal:
 
 ```sh
-./tumblr-gif view <path to video file> '0:10:4' 10
-# generating frame images
+$ ./tumblr-gif view /path/to/video.mp4 '0:10:4' 11
+# generating frame images from '0:10:4' for 11 secounds
 # then delete unwanted frame images
-./tumblr-gif build /tmp/t.gif
+$ ./tumblr-gif build /tmp/t.gif
 # generating /tmp/t.gif with generated frame images
 ```
 
-And `~/.tumblr-gif-rc.sh` might help you to build a GIF.
+`~/.tumblr-gif-rc.sh` and `$ ./tumblr-gif build --help` might help you to build a GIF.
