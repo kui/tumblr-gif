@@ -3,47 +3,39 @@
 MAX_FILE_SIZE=$((990 * 1000)) # 990 KB
 MIN_FILE_SIZE=$((985 * 1000)) # 990 KB
 MAX_SIDE=500
-MIN_SIDE=230
 
 function do_convert() {
+    if [[ $MIN_FILE_SIZE -gt $MAX_FILE_SIZE ]]; then
+        abort "ERROR: invalid MIN/MAX_FILE_SIZE: ${MIN_FILE_SIZE}/${MAX_FILE_SIZE}"
+    fi
+
+    printf '  %s images, %sB (avg: %sKB)\n' \
+        $(ls $WORKSPACE/* | wc -l) \
+        $(du -sh $WORKSPACE | cut -f1) \
+        $(bc <<< "$(du -s $WORKSPACE | cut -f1) / $(ls $WORKSPACE/* | wc -l)")
+    
     gen_gif $init_width
 
-    local sides="$(get_geometry)"
-    local base_width=$(cut -dx -f1 <<< "$sides")
-    local base_height=$(cut -dx -f2 <<< "$sides")
-
-    if [[ $base_width -eq $MAX_SIDE || $base_height -eq $MAX_SIDE ]] \
-        && [[ $(stat -c%s "$output_gif") -lt $MAX_FILE_SIZE ]]; then
+    if is_valid_gif; then
         echo "Success!"
         return 0
     fi
 
-    if is_valid_sides $base_width $base_height && is_valid_size; then
-        echo "Success!"
-        return 0
-    fi
-
-    local width_history=
-    local sides w h
+    local width_history=$(get_width)
+    local sides w
     while true ; do
-        sides="$(next_sides)"
-        w=$(cut -dx -f1 <<< "$sides")
-        h=$(cut -dx -f2 <<< "$sides")
+        w=$(next_width)
         if grep -qF $w <<< "$width_history"; then
-            echo "Width Convergence: ${w}x${h}"
+            echo "GIF width convergence: ${w}x"
             echo "Success?"
             return 0
         else
             width_history="$width_history $w"
         fi
 
-        if ! is_valid_sides $w $h; then
-            abort "Failure: delete some images on $WORKSPACE"
-        fi
-
         gen_gif $w
 
-        if is_valid_size; then
+        if is_valid_gif; then
             break
         fi
     done
@@ -51,33 +43,37 @@ function do_convert() {
     echo "Success"
 }
 
-function is_valid_size() {
-    local size=$(stat -c%s "$output_gif")
-    [[ $size -lt $MAX_FILE_SIZE \
-        && $size -gt $MIN_FILE_SIZE ]] || return 1
+function is_valid_gif() {
+    local size=$(get_size)
+    local geo=$(get_geometry)
+    local width=$(cut -f1 -dx <<< $geo)
+    local height=$(cut -f2 -dx <<< $geo)
+
+    ( is_valid_sides $width $height && is_expected_size_range $size) \
+        || ( is_max_sides $width $height && is_valid_size $size)
 }
 function is_valid_sides() {
-    local width=$1
-    local height=$2
-
-    if [[ $width -gt $height ]]; then # the long side is width
-        if [[ $width -gt $MAX_SIDE ]]; then
-            echo "Too long width"
-            return 1
-        elif [[ $width -lt $MIN_SIDE ]]; then
-            echo "Too short width"
-            return 1
-        fi
-    else # the long side is height
-        if [[ $height -gt $MAX_SIDE ]]; then
-            echo "Too long height"
-            return 1
-        elif [[ $height -lt $MIN_SIDE ]]; then
-            echo "Too short height"
-            return 1
-        fi
+    local w=$1 h=$2
+    if [[ $w -gt $h ]]
+    then [[ $w -le $MAX_SIDE ]]
+    else [[ $h -le $MAX_SIDE ]]
     fi
 }
+function is_expected_size_range() {
+    [[ $1 -le $MAX_FILE_SIZE \
+        && $1 -ge $MIN_FILE_SIZE ]]
+}
+function is_max_sides() {
+    local w=$1 h=$2
+    if [[ $w -gt $h ]]
+    then [[ $w -eq $MAX_SIDE ]]
+    else [[ $h -eq $MAX_SIDE ]]
+    fi
+}
+function is_valid_size() {
+    [[ $1 -le $MAX_FILE_SIZE ]]
+}
+
 function get_geometry() {
     identify -format '%[fx:w]x%[fx:h]\n' "$output_gif" | head -n 1
     return ${PIPESTATUS[0]}
@@ -90,21 +86,24 @@ function get_size() {
     stat -c%s "$output_gif"
 }
 
-function next_sides() {
-    local w=$(get_width "$output_gif")
-    local s=$(get_size "$output_gif")
+function next_width() {
+    local geo=$(get_geometry)
+    local w=$(cut -f1 -dx <<< $geo)
+    local h=$(cut -f2 -dx <<< $geo)
+    local s=$(get_size)
+
     local next_w=$(evenize $(bc -l <<< "sqrt($MAX_FILE_SIZE / $s) * $w"))
     if [[ $next_w -gt $MAX_SIDE ]]; then
         next_w=$MAX_SIDE
     fi
-    next_h=$(((base_height * next_w) / base_width))
+
+    local next_h=$(((h * next_w) / w))
     if [[ $next_h -gt $MAX_SIDE ]]; then
         next_h=$MAX_SIDE
-        next_w=$(((base_width * next_h) / base_height))
+        next_w=$(((w * next_h) / h))
     fi
 
-    echo ${next_w}x${next_h}
-    width_history="$width_history $next_w"
+    echo ${next_w}
 }
 function evenize() {
     local i=${1%.*}
@@ -145,7 +144,7 @@ function gen_gif() {
         -layers optimize "$output_gif"
 
     local s="$(ls -sh "$output_gif"|tail -n 1|awk '{print $1}')"
-    echo -e "#${gen_counter}\t$(get_geometry) \t${s}B";
+    printf '#%d: %7s %4sB\n' $gen_counter $(get_geometry) $s;
     gen_counter=$((gen_counter + 1))
 }
 
