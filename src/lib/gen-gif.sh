@@ -7,13 +7,20 @@ MAX_SIDE=500
 function do_convert() {
     if [[ $MIN_FILE_SIZE -gt $MAX_FILE_SIZE ]]; then
         abort "ERROR: invalid MIN/MAX_FILE_SIZE: ${MIN_FILE_SIZE}/${MAX_FILE_SIZE}"
+    elif [[ $(list_frames | wc -l) -lt $frame_interval ]]; then
+        abort "ERROR: too less images"
     fi
 
     printf '  %s images, %sB (avg: %sKB)\n' \
-        $(ls $WORKSPACE/* | wc -l) \
+        $(list_frames | wc -l) \
         $(du -sh $WORKSPACE | cut -f1) \
         $(bc <<< "$(du -s $WORKSPACE | cut -f1) / $(ls $WORKSPACE/* | wc -l)")
-    
+
+    rm_blendeds
+    if [[ $blend_loop -gt 0 ]]; then
+        gen_blendeds
+    fi
+
     gen_gif $init_width
 
     if is_valid_gif; then
@@ -43,6 +50,12 @@ function do_convert() {
     echo "Success"
 }
 
+function list_frames() {
+    ls -- $WORKSPACE | grep -vP '^__blended-\d+\.png$'
+}
+function rm_blendeds() {
+    ls -- $WORKSPACE | grep -P '^__blended-\d+\.png$' | xargs -I{} rm $WORKSPACE/{}
+}
 function is_valid_gif() {
     local size=$(get_size)
     local geo=$(get_geometry)
@@ -110,13 +123,21 @@ function evenize() {
     echo $((i / 2 * 2))
 }
 
-gen_counter=1
-function gen_gif() {
-    local width="$1"
-
-    local delay=$((delay_factor * frame_interval))
-    local arg="-delay $delay"
-    local last_i=$(ls $WORKSPACE | wc -l)
+function gen_blendeds() {
+    local first_frame="$(get_first_frame)"
+    local last_frame="$(get_last_frame)"
+    local interval=$(( 100 / ( blend_loop + 1 ) ))
+    local percent out
+    for percent in $(seq $interval $interval $((100 - interval))); do
+        out="$WORKSPACE/$(printf '__blended-%02d.png' $percent)"
+        composite -blend $percent $first_frame $last_frame $out
+    done
+}
+function get_first_frame() {
+    echo "$WORKSPACE/$(list_frames | sort -n | head -n 1)"
+}
+function get_last_frame() {
+    local last_i=$(list_frames | wc -l)
     if [[ $((last_i % frame_interval)) -eq 0 ]]
     then last_i=$((last_i - frame_interval))
     else last_i=$(((last_i / frame_interval) * frame_interval))
@@ -124,10 +145,33 @@ function gen_gif() {
 
     set +x
     local f i=0
-    for f in $(ls $WORKSPACE | sort -n); do
+    for f in $(list_frames | sort -n); do
         if [[ $((i % frame_interval)) -eq 0 ]]; then
             f="$WORKSPACE/$f"
-            if [[ $i -eq $last_i ]]
+            if [[ $i -eq $last_i ]]; then
+                echo "$f"
+                break
+            fi
+        fi
+        i=$((i + 1))
+    done
+    set_x
+}
+
+gen_counter=1
+function gen_gif() {
+    local width="$1"
+
+    local delay=$((delay_factor * frame_interval))
+    local arg="-delay $delay"
+    local last_frame=$(get_last_frame)
+
+    set +x
+    local f i=0
+    for f in $(list_frames | sort -n); do
+        if [[ $((i % frame_interval)) -eq 0 ]]; then
+            f="$WORKSPACE/$f"
+            if [[ "$f" = "$last_frame" ]]
             then arg="$arg -delay $last_delay '$f'"
             else arg="$arg '$f'"
             fi
@@ -136,18 +180,28 @@ function gen_gif() {
     done
     set_x
 
+    if [[ $blend_loop -gt 0 ]]; then
+        arg="$arg -delay $delay"
+        for f in $(list_blendeds | sort -n); do
+            f="$WORKSPACE/$f"
+            arg="$arg '$f'"
+        done
+    fi
+
     echo_and_eval convert $arg -loop 0 \
         -geometry "${width}x" \
         -fuzz ${fuzz}% \
         -dither FloydSteinberg \
         -modulate "100,$saturation" \
-        -layers optimize "$output_gif"
+        -layers Optimize "$output_gif"
 
     local s="$(ls -sh "$output_gif"|tail -n 1|awk '{print $1}')"
     printf '#%d: %7s %4sB\n' $gen_counter $(get_geometry) $s;
     gen_counter=$((gen_counter + 1))
 }
-
+function list_blendeds() {
+    ls -- "$WORKSPACE" | grep -P '^__blended-\d+\.png$'
+}
 function echo_and_eval() {
     if $is_echo_convert
     then echo "$@"
