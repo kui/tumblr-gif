@@ -19,7 +19,9 @@ usage="Usage: $(basename "$0") [<option> [ ... ] ] <output_gif>
     -f,--fuzz NUM           :
         set this smaller NUM then a smaller gif was generated. default: $fuzz
     -i,--frame-interval NUM :
-        set this larger NUM then a smaller gif was generated. default: $frame_interval
+        set this larger NUM if tumblr return \"Error uploading image\".
+        set this larger NUM then a smaller gif was generated.
+        default: $frame_interval
     -l,--last-delay NUM     :
         set this larger NUM if you want a gif which has the last frame stop
         for NUM delay.
@@ -61,7 +63,7 @@ while [[ $# -gt 0 ]]; do
             last_delay=$2
             shift
             ;;
-        --delay-factor)
+        -b|--delay-factor)
             is_int "$2" || abort "$1 argument must integer: $2"
             delay_factor=$2
             shift
