@@ -223,7 +223,10 @@ function convert_cmd() {
     if [[ $fuzz -gt 0 ]]
     then echo -n "-fuzz ${fuzz}% "
     fi
-    echo -n "-dither FloydSteinberg "
+    if $is_dither
+    then echo -n "-dither FloydSteinberg "
+    else echo -n "+dither "
+    fi
     echo -n "-modulate 100,$saturation "
     echo -n "-layers Optimize \"$output_gif\""
 }

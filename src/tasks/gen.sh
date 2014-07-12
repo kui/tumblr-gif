@@ -14,6 +14,7 @@ blend_loop=0
 is_echo_convert=false
 output_gif=
 is_half=false
+is_dither=true
 
 usage="Usage: $(basename "$0") [<option> [ ... ] ] <output_gif>
     -s,--saturation NUM     :
@@ -40,6 +41,7 @@ usage="Usage: $(basename "$0") [<option> [ ... ] ] <output_gif>
     --half                  :
         generate a gif which be the half size and
         the upper limit file size is 2MB.
+    --no-dither             : without dither option.
     -h,--help
 "
 
@@ -89,6 +91,9 @@ while [[ $# -gt 0 ]]; do
             then init_width=$DEFAULT_HALF_INIT_WIDTH
             fi
             ;;
+        --no-dither)
+            is_dither=false
+            ;;
         -h|--help) abort "$usage" ;;
         -*) abort "unknown option: $1" ;;
         *)
@@ -109,7 +114,7 @@ fi
 
 (
     for v in saturation init_width fuzz frame_interval last_delay delay_factor \
-        blend_loop is_echo_convert is_half output_gif
+        blend_loop is_echo_convert is_half is_dither output_gif
     do eval echo "$v : \$$v"
     done
     echo -------------------
