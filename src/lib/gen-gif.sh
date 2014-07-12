@@ -1,10 +1,15 @@
 #!/bin/bash
 
-MAX_FILE_SIZE=$((990 * 1000)) # 990 KB
-MIN_FILE_SIZE=$((985 * 1000)) # 990 KB
+
+MAX_FILE_SIZE=$((995 * 1000)) # 998 KB
+MIN_FILE_SIZE=$((990 * 1000)) # 990 KB
 MAX_SIDE=500
 
 function do_convert() {
+    if $is_half
+    then update_for_half_limits
+    fi
+
     if [[ $MIN_FILE_SIZE -gt $MAX_FILE_SIZE ]]; then
         abort "ERROR: invalid MIN/MAX_FILE_SIZE: ${MIN_FILE_SIZE}/${MAX_FILE_SIZE}"
     elif [[ $(list_frames | wc -l) -lt $frame_interval ]]; then
@@ -19,6 +24,11 @@ function do_convert() {
     rm_blendeds
     if [[ $blend_loop -gt 0 ]]; then
         gen_blendeds
+    fi
+
+    if $is_echo_convert; then
+        echo "$(convert_cmd $init_width)"
+        return 0
     fi
 
     gen_gif $init_width
@@ -36,6 +46,9 @@ function do_convert() {
             echo "GIF width convergence: ${w}x"
             echo "Success?"
             return 0
+        elif [[ $w -lt $((MAX_SIDE / 2 )) ]]; then
+            abort "ERROR: Too large or many frames to make a GIF\nabort"
+            return 1
         else
             width_history="$width_history $w"
         fi
@@ -48,6 +61,12 @@ function do_convert() {
     done
 
     echo "Success"
+}
+
+function update_for_half_limits() {
+    MAX_FILE_SIZE=$((1998 * 1000)) # 1998 KB
+    MIN_FILE_SIZE=$((1990 * 1000)) # 1990 KB
+    MAX_SIDE=245
 }
 
 function list_frames() {
@@ -162,6 +181,17 @@ gen_counter=1
 function gen_gif() {
     local width="$1"
 
+    eval "$(convert_cmd $width)"
+
+    local s="$(ls -sh "$output_gif"|tail -n 1|awk '{print $1}')"
+    printf '#%d: %7s %4sB\n' $gen_counter $(get_geometry) $s;
+    gen_counter=$((gen_counter + 1))
+}
+function list_blendeds() {
+    ls -- "$WORKSPACE" | grep -P '^__blended-\d+\.png$'
+}
+function convert_cmd() {
+    local width="$1"
     local delay=$((delay_factor * frame_interval))
     local arg="-delay $delay"
     local last_frame=$(get_last_frame)
@@ -188,23 +218,12 @@ function gen_gif() {
         done
     fi
 
-    echo_and_eval convert $arg -loop 0 \
-        -geometry "${width}x" \
-        -fuzz ${fuzz}% \
-        -dither FloydSteinberg \
-        -modulate "100,$saturation" \
-        -layers Optimize "$output_gif"
-
-    local s="$(ls -sh "$output_gif"|tail -n 1|awk '{print $1}')"
-    printf '#%d: %7s %4sB\n' $gen_counter $(get_geometry) $s;
-    gen_counter=$((gen_counter + 1))
-}
-function list_blendeds() {
-    ls -- "$WORKSPACE" | grep -P '^__blended-\d+\.png$'
-}
-function echo_and_eval() {
-    if $is_echo_convert
-    then echo "$@"
+    echo -n "convert $arg -loop 0 "
+    echo -n "-geometry ${width}x "
+    if [[ $fuzz -gt 0 ]]
+    then echo -n "-fuzz ${fuzz}% "
     fi
-    eval "$@"
+    echo -n "-dither FloydSteinberg "
+    echo -n "-modulate 100,$saturation "
+    echo -n "-layers Optimize \"$output_gif\""
 }

@@ -1,8 +1,11 @@
 #!/bin/bash
 # <help>generate gif which meets tumblr gif specification</help>
 
+DEFAULT_INIT_WIDTH=500
+DEFAULT_HALF_INIT_WIDTH=245
+
 saturation=100
-init_width=500
+init_width=$DEFAULT_INIT_WIDTH
 fuzz=2
 frame_interval=2
 last_delay=
@@ -10,6 +13,7 @@ delay_factor=3
 blend_loop=0
 is_echo_convert=false
 output_gif=
+is_half=false
 
 usage="Usage: $(basename "$0") [<option> [ ... ] ] <output_gif>
     -s,--saturation NUM     :
@@ -32,7 +36,10 @@ usage="Usage: $(basename "$0") [<option> [ ... ] ] <output_gif>
     -b,--blend-loop NUM     :
         blending between the first frame and the last frame with NUM frame.
         default: $blend_loop
-    --echo-convert          : output 'convert' cmmands
+    --echo-convert          : just output 'convert' cmmands. does not execute.
+    --half                  :
+        generate a gif which be the half size and
+        the upper limit file size is 2MB.
     -h,--help
 "
 
@@ -74,7 +81,13 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --echo-convert)
-            is_echo_convert="true"
+            is_echo_convert=true
+            ;;
+        --half)
+            is_half=true
+            if [[ $init_width -eq $DEFAULT_INIT_WIDTH ]]
+            then init_width=$DEFAULT_HALF_INIT_WIDTH
+            fi
             ;;
         -h|--help) abort "$usage" ;;
         -*) abort "unknown option: $1" ;;
@@ -96,7 +109,7 @@ fi
 
 (
     for v in saturation init_width fuzz frame_interval last_delay delay_factor \
-        blend_loop is_echo_convert output_gif
+        blend_loop is_echo_convert is_half output_gif
     do eval echo "$v : \$$v"
     done
     echo -------------------

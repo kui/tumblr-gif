@@ -29,7 +29,7 @@ function hash_code() {
     bc <<< "$s % $base"
 }
 function err() {
-    echo "$@" >&2
+    echo -e "$@" >&2
 }
 
 function is_int() {
