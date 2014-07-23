@@ -1,13 +1,13 @@
 tumblr-gif
 ==============
 
-GIF generator for tumblr.
+GIF generator for the tumblr spec.
 
 Requirement
 -------------
 
-* `avconv` : included on [libav][])
-* `covert` : included on [ImageMagick][])
+* `avconv` : included on [libav][]
+* `covert` : included on [ImageMagick][]
 
 [ImageMagick]: http://www.imagemagick.org/
 [libav]: http://libav.org/
@@ -15,7 +15,7 @@ Requirement
 On Ubuntu:
 
 ```sh
-apt-get install avconv imagemagick
+apt-get install libav-tools imagemagick
 ```
 
 Installation
@@ -41,8 +41,8 @@ In terminal:
 $ ./tumblr-gif view /path/to/video.mp4 '0:10:4' 11
 # generating frame images from '0:10:4' for 11 secounds
 # then delete unwanted frame images
-$ ./tumblr-gif build /tmp/t.gif
+$ ./tumblr-gif gen /tmp/t.gif
 # generating /tmp/t.gif with generated frame images
 ```
 
-`~/.tumblr-gif-rc.sh` and `$ ./tumblr-gif build --help` might help you to build a GIF.
+`~/.tumblr-gif-rc.sh` and `$ ./tumblr-gif gen -h` might help you to build a GIF.
