@@ -15,8 +15,8 @@ offset_time="$2"
 duration_sec="$3"
 
 mkdir -pv "$WORKSPACE"
-avconv -deinterlace -i "$video_file" -f image2 \
-    -ss "$offset_time" -r 3 -s '500x280' \
+avconv -deinterlace -r 33 -i "$video_file" -f image2 \
+    -ss "$offset_time" -s '500x280' \
     -t "$duration_sec" "$WORKSPACE/%04d.png"
 
 pngs=()
