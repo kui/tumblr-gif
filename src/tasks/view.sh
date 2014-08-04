@@ -1,3 +1,4 @@
+
 #!/bin/bash
 # <help>generating and viewing png</help>
 
@@ -15,8 +16,8 @@ offset_time="$2"
 duration_sec="$3"
 
 mkdir -pv "$WORKSPACE"
-avconv -deinterlace -r 33 -i "$video_file" -f image2 \
-    -ss "$offset_time" -s '500x280' \
+avconv -r 30 -i "$video_file" -f image2 \
+    -filter:v yadif -ss "$offset_time" -s '500x280' \
     -t "$duration_sec" "$WORKSPACE/%04d.png"
 
 pngs=()
