@@ -225,7 +225,7 @@ function convert_cmd() {
     else echo -n "+dither "
     fi
     echo -n "-modulate 100,$saturation "
-    if [[ $fuzz -gt 0 ]]
+    if [[ $(bc <<< "$fuzz > 0") -eq 1 ]]
     then echo -n "-fuzz ${fuzz}% "
     fi
     echo -n "-layers OptimizeTransparency \"$output_gif\""
