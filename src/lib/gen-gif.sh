@@ -220,13 +220,13 @@ function convert_cmd() {
 
     echo -n "convert $arg -loop 0 "
     echo -n "-geometry ${width}x "
-    if [[ $fuzz -gt 0 ]]
-    then echo -n "-fuzz ${fuzz}% "
-    fi
     if $is_dither
     then echo -n "-dither FloydSteinberg "
     else echo -n "+dither "
     fi
     echo -n "-modulate 100,$saturation "
-    echo -n "-layers Optimize \"$output_gif\""
+    if [[ $fuzz -gt 0 ]]
+    then echo -n "-fuzz ${fuzz}% "
+    fi
+    echo -n "-layers OptimizeTransparency \"$output_gif\""
 }
