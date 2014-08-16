@@ -6,15 +6,15 @@ DEFAULT_HALF_INIT_WIDTH=245
 
 saturation=100
 init_width=$DEFAULT_INIT_WIDTH
-fuzz=2
-frame_interval=2
+fuzz=1
+frame_interval=3
 last_delay=
 delay_factor=3
 blend_loop=0
 is_echo_convert=false
 output_gif=
 is_half=false
-is_dither=true
+is_dither=false
 
 usage="Usage: $(basename "$0") [<option> [ ... ] ] <output_gif>
     -s,--saturation NUM     :
@@ -22,7 +22,8 @@ usage="Usage: $(basename "$0") [<option> [ ... ] ] <output_gif>
         default: $saturation, max: 100, min: 1
     -w,--init-width NUM     : default: $init_width
     -f,--fuzz NUM           :
-        set this smaller NUM then a smaller gif was generated. default: $fuzz
+        set this larger NUM then a smaller gif was generated.
+        default: $fuzz, max: 100, min: 0
     -i,--frame-interval NUM :
         set this larger NUM if tumblr return \"Error uploading image\".
         set this larger NUM then a smaller gif was generated.
@@ -30,18 +31,18 @@ usage="Usage: $(basename "$0") [<option> [ ... ] ] <output_gif>
     -l,--last-delay NUM     :
         set this larger NUM if you want a gif which has the last frame stop
         for NUM delay.
-        default: ( delay-factor * frame-interval )
-    --delay-factor NUM      :
-        set this larger NUM if you want a gif at faster speed animation.
-        default: $delay_factor
+        default: delay-factor * frame-interval
     -b,--blend-loop NUM     :
         blending between the first frame and the last frame with NUM frame.
         default: $blend_loop
-    --echo-convert          : just output 'convert' cmmands. does not execute.
+    -d,--dither             : with '-dither FloydSteinberg' option.
+    --delay-factor NUM      :
+        set this larger NUM if you want a gif with slower speed animation.
+        default: $delay_factor
     --half                  :
         generate a gif which be the half size and
         the upper limit file size is 2MB.
-    --no-dither             : without dither option.
+    --echo-convert          : just output 'convert' cmmands. does not execute.
     -h,--help
 "
 
@@ -72,12 +73,12 @@ while [[ $# -gt 0 ]]; do
             last_delay=$2
             shift
             ;;
-        -b|--delay-factor)
+        --delay-factor)
             is_int "$2" || abort "$1 argument must integer: $2"
             delay_factor=$2
             shift
             ;;
-        --blend-loop)
+        -b|--blend-loop)
             is_int "$2" || abort "$1 argument must integer: $2"
             blend_loop=$2
             shift
@@ -91,8 +92,8 @@ while [[ $# -gt 0 ]]; do
             then init_width=$DEFAULT_HALF_INIT_WIDTH
             fi
             ;;
-        --no-dither)
-            is_dither=false
+        -d|--dither)
+            is_dither=true
             ;;
         -h|--help) abort "$usage" ;;
         -*) abort "unknown option: $1" ;;
