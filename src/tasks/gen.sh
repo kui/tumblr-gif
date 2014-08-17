@@ -11,6 +11,7 @@ frame_interval=3
 last_delay=
 delay_factor=3
 blend_loop=0
+cross_blend_loop=0
 is_echo_convert=false
 output_gif=
 is_half=false
@@ -34,7 +35,12 @@ usage="Usage: $(basename "$0") [<option> [ ... ] ] <output_gif>
         default: delay-factor * frame-interval
     -b,--blend-loop NUM     :
         blending between the first frame and the last frame with NUM frame.
+        '--cross-blend-loop NUM' will be ignored if you used this option.
         default: $blend_loop
+    -c,--cross-blend-loop NUM     :
+        blending between the first NUM frames and the last NUM frames.
+        '--blend-loop NUM' will be ignored if you used this option.
+        default: $cross_blend_loop
     -d,--dither             : with '-dither FloydSteinberg' option.
     --delay-factor NUM      :
         set this larger NUM if you want a gif with slower speed animation.
@@ -65,7 +71,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -i|--frame-interval)
             is_int "$2" || abort "$1 argument must integer: $2"
-            frame_interval="$2"
+            frame_interval=$2
             shift
             ;;
         -l|--last-delay)
@@ -81,6 +87,11 @@ while [[ $# -gt 0 ]]; do
         -b|--blend-loop)
             is_int "$2" || abort "$1 argument must integer: $2"
             blend_loop=$2
+            shift
+            ;;
+        -c|--cross-blend-loop)
+            is_int "$2" || abort "$1 argument must integer: $2"
+            cross_blend_loop=$2
             shift
             ;;
         --echo-convert)
@@ -115,7 +126,7 @@ fi
 
 (
     for v in saturation init_width fuzz frame_interval last_delay delay_factor \
-        blend_loop is_echo_convert is_half is_dither output_gif
+        blend_loop cross_blend_loop is_echo_convert is_half is_dither output_gif
     do eval echo "$v : \$$v"
     done
     echo -------------------
