@@ -1,6 +1,8 @@
 tumblr-gif
 ==============
 
+__NO LONGER MAINTAINED__: new implimented by [kui/tumblr-gif-py](https://github.com/kui/tumblr-gif-py)
+
 GIF generator for the tumblr spec.
 
 Requirement
